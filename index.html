@@ -1,3 +1,19 @@
+// Inside <script type="module"> — expose ALL onclick functions to global scope
+window.signInWithGoogle = async () => { ... }
+window.signOutUser = async () => { ... }
+window.switchSubject = (s) => { ... }
+window.toggleEditMode = () => { ... }
+window.openModal = () => { ... }
+window.closeModal = () => { ... }
+window.handleImageSelect = (e) => { ... }
+window.submitEntry = async (e) => { ... }
+window.deleteEntry = async (id) => { ... }
+window.openLightbox = (url) => { ... }
+window.closeLightbox = () => { ... }
+window.handleOverlayClick = (e) => { ... }
+window.showToast = (msg, type) => { ... }
+Here's the complete corrected file:
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
