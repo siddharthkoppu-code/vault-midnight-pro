@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Vault Midnight Pro</title>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+  <style>
+    *, *::before, *::after { font-family: "Plus Jakarta Sans", sans-serif; box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #080D18; color: #e2e8f0; min-height: 100vh; }
+    ::-webkit-scrollbar { width: 4px; height: 4px; }
+    ::-webkit-scrollbar-track { background: #0F172A; }
+    ::-webkit-scrollbar-thumb { background: #FBBF24; border-radius: 4px; }
+    .no-sb::-webkit-scrollbar { display: none; }
+    .no-sb { -ms-overflow-style: none; scrollbar-width: none; }
+
+    /* Auth */
+    #authScreen { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; }
+    .auth-card { width: 100%; max-width: 360px; text-align: center; }
+    .auth-logo { display: inline-flex; align-items: center; justify-content: center; width: 80px; height: 80px; border-radius: 20px; background: #0F172A; border: 1px solid #1E293B; margin-bottom: 20px; }
+    .auth-card h1 { font-size: 28px; font-weight: 800; color: #fff; letter-spacing: -0.5px; }
+    .auth-sub { color: #64748b; margin-top: 8px; font-size: 14px; }
+    .auth-box { background: #0F172A; border: 1px solid #1E293B; border-radius: 20px; padding: 32px; margin-top: 28px; }
+    .auth-desc { color: #94a3b8; font-size: 14px; line-height: 1.7; margin-bottom: 24px; }
+    .auth-footer { color: #334155; font-size: 12px; margin-top: 20px; }
+
+    /* Buttons */
+    .btn-gold { background: #FBBF24; color: #080D18; font-weight: 700; border: none; cursor: pointer; font-family: inherit; transition: box-shadow .2s, transform .1s; }
+    .btn-gold:hover { box-shadow: 0 0 20px rgba(251,191,36,.4); transform: translateY(-1px); }
+    .btn-gold:active { transform: scale(.97); }
+    .btn-full { width: 100%; padding: 14px; border-radius: 14px; font-size: 14px; }
+    .btn-row { display: flex; align-items: center; justify-content: center; gap: 10px; }
+
+    /* Spinner */
+    @keyframes rot { to { transform: rotate(360deg); } }
+    .spin { display: inline-block; width: 18px; height: 18px; border-radius: 50%; border: 2px solid rgba(8,13,24,.2); border-top-color: #080D18; animation: rot .7s linear infinite; vertical-align: middle; }
+    .big-spinner { width: 28px; height: 28px; border-radius: 50%; border: 3px solid rgba(251,191,36,.2); border-top-color: #FBBF24; animation: rot .7s linear infinite; }
+
+    /* Toast */
+    #toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px); background: #1E293B; color: #e2e8f0; padding: 10px 22px; border-radius: 999px; font-size: 13px; font-weight: 600; border: 1px solid #334155; transition: transform .3s, opacity .3s; opacity: 0; z-index: 9999; white-space: nowrap; pointer-events: none; }
+    #toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+    #toast.ok  { border-color: #FBBF24; color: #FBBF24; }
+    #toast.err { border-color: #f87171; color: #f87171; }
+
+    /* Lightbox */
+    #lb { display: none; position: fixed; inset: 0; background: rgba(8,13,24,.95); z-index: 10000; align-items: center; justify-content: center; cursor: zoom-out; }
+    #lb.open { display: flex; }
+    #lb img { max-width: 94vw; max-height: 90vh; border-radius: 12px; object-fit: contain; }
+
+    /* Header */
+    header { position: sticky; top: 0; z-index: 50; backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); background: rgba(8,13,24,.85); border-bottom: 1px solid rgba(30,41,59,.8); }
+    .header-inner { max-width: 720px; margin: 0 auto; padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; }
+    .header-left { display: flex; align-items: center; gap: 12px; }
+    .logo-icon { width: 34px; height: 34px; border-radius: 10px; background: #FBBF24; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .logo-text { color: #fff; font-weight: 800; font-size: 15px; }
+    .logo-sub { color: #FBBF24; font-size: 11px; font-weight: 600; margin-top: 2px; }
+    .header-right { display: flex; align-items: center; gap: 8px; }
+    .edit-btn { font-size: 12px; font-weight: 700; padding: 6px 14px; border-radius: 8px; border: 1px solid #334155; color: #94a3b8; background: transparent; cursor: pointer; font-family: inherit; transition: all .2s; }
+    .edit-btn.active { border-color: #FBBF24; color: #FBBF24; }
+    .avatar-btn { width: 34px; height: 34px; border-radius: 50%; border: 2px solid #334155; background: #1E293B; cursor: pointer; padding: 0; display: flex; align-items: center; justify-content: center; transition: border-color .2s; overflow: hidden; }
+    .avatar-btn:hover { border-color: #FBBF24; }
+
+    /* Pills */
+    .pills-wrap { max-width: 720px; margin: 0 auto; padding: 0 16px 12px; }
+    .pills { display: flex; gap: 8px; overflow-x: auto; }
+    .pill { flex-shrink: 0; padding: 6px 18px; border-radius: 999px; font-size: 13px; font-weight: 600; border: none; cursor: pointer; background: #1E293B; color: #94a3b8; transition: all .2s; font-family: inherit; }
+    .pill.active { background: #FBBF24; color: #080D18; font-weight: 700; }
+
+    /* Main */
+    #mainApp { display: none; flex-direction: column; min-height: 100vh; }
+    main { flex: 1; max-width: 720px; margin: 0 auto; width: 100%; padding: 20px 16px 100px; }
+
+    /* States */
+    .center-state { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 80px 0; gap: 12px; text-align: center; }
+    .center-state p { color: #475569; font-size: 14px; }
+    .empty-icon { width: 64px; height: 64px; border-radius: 18px; background: #0F172A; border: 1px solid #1E293B; display: flex; align-items: center; justify-content: center; }
+    .empty-title { color: #64748b !important; font-weight: 600; font-size: 15px !important; }
+    .empty-sub { color: #334155 !important; font-size: 13px !important; }
+
+    /* FAB */
+    #fab { position: fixed; bottom: 24px; right: 20px; z-index: 40; display: none; }
+    .fab-btn { width: 56px; height: 56px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 32px rgba(251,191,36,.4); }
+
+    /* Feed */
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+    .chapter-block { border-left: 3px solid #FBBF24; padding-left: 14px; margin-bottom: 28px; animation: fadeIn .3s ease-out; }
+    .chapter-heading { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
+    .chapter-name { color: #FBBF24; font-weight: 800; font-size: 16px; }
+    .chapter-count { background: #1E293B; color: #64748b; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px; }
+    .topic-label { color: #64748b; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 10px; margin-top: 4px; }
+    .entry-card { background: #0F172A; border: 1px solid #1E293B; border-radius: 16px; padding: 16px; margin-bottom: 10px; transition: border-color .2s; }
+    .entry-card:hover { border-color: #334155; }
+    .card-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+    .q-badge { background: #FBBF24; color: #080D18; font-size: 11px; font-weight: 800; padding: 3px 10px; border-radius: 999px; }
+    .delete-btn { width: 28px; height: 28px; border-radius: 8px; background: rgba(248,113,113,.1); border: 1px solid rgba(248,113,113,.2); cursor: pointer; display: none; align-items: center; justify-content: center; transition: background .2s; }
+    .delete-btn:hover { background: rgba(248,113,113,.25); }
+    #feedContainer.edit-mode .delete-btn { display: flex; }
+    .logic-text { color: #cbd5e1; font-size: 14px; line-height: 1.6; }
+    .card-img { width: 100%; border-radius: 10px; margin-top: 12px; cursor: zoom-in; object-fit: contain; max-height: 200px; border: 1px solid #1E293B; }
+
+    /* Modal */
+    #modalOverlay { display: none; position: fixed; inset: 0; z-index: 60; background: rgba(8,13,24,.8); backdrop-filter: blur(4px); align-items: flex-end; justify-content: center; }
+    #modalOverlay.open { display: flex; }
+    @keyframes slideUp { from { transform: translateY(100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+    #modalSheet { animation: slideUp .3s ease-out; width: 100%; max-width: 560px; background: #0F172A; border: 1px solid #1E293B; border-radius: 24px 24px 0 0; padding: 24px; max-height: 92vh; overflow-y: auto; }
+    .modal-handle { width: 40px; height: 4px; background: #1E293B; border-radius: 2px; margin: 0 auto 20px; }
+    .modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+    .modal-header h2 { color: #fff; font-weight: 800; font-size: 18px; }
+    .modal-header p { color: #475569; font-size: 12px; margin-top: 4px; }
+    .close-btn { width: 32px; height: 32px; border-radius: 50%; background: #1E293B; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    #entryForm { display: flex; flex-direction: column; gap: 14px; }
+    .form-row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .form-group { display: flex; flex-direction: column; gap: 6px; }
+    .form-group label { color: #64748b; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; }
+    .inp { background: #1E293B; border: 1px solid #334155; border-radius: 12px; padding: 10px 14px; font-size: 14px; color: #fff; outline: none; transition: border-color .2s; font-family: inherit; width: 100%; }
+    .inp::placeholder { color: #475569; }
+    .inp:focus { border-color: #FBBF24; }
+    textarea.inp { resize: none; }
+    .dz { border: 2px dashed #334155; border-radius: 14px; overflow: hidden; cursor: pointer; min-height: 100px; transition: border-color .2s; }
+    .dz:hover, .dz.has-img { border-color: #FBBF24; border-style: solid; }
+    #dzPlaceholder { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 28px; gap: 8px; }
+    #dzPlaceholder p { color: #475569; font-size: 13px; font-weight: 600; }
+    #dzPlaceholder span { color: #334155; font-size: 11px; }
+    #imgPreview { display: none; width: 100%; object-fit: contain; max-height: 220px; }
+  </style>
+</head>
+<body>
+
+<!-- ═══════════ AUTH ═══════════ -->
+<div id="authScreen">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <svg width="38" height="38" viewBox="0 0 24 24" fill="none"
+        stroke="#FBBF24" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="11" width="18" height="11" rx="2"/>
+        <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+      </svg>
+    </div>
+    <h1>Vault Midnight Pro</h1>
+    <p class="auth-sub">Your personal study intelligence vault</p>
+    <div class="auth-box">
+      <p class="auth-desc">Enter as a guest to access your study vault. Your data is saved privately to this session.</p>
+      <button id="signInBtn" class="btn-gold btn-full btn-row">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+          stroke="#080D18" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+          <circle cx="12" cy="7" r="4"/>
+        </svg>
+        Enter as Guest
+      </button>
+    </div>
+    <p class="auth-footer">Vault Midnight Pro · Built for serious students</p>
+  </div>
+</div>
+
+<!-- ═══════════ MAIN APP ═══════════ -->
+<div id="mainApp">
+  <header>
+    <div class="header-inner">
+      <div class="header-left">
+        <div class="logo-icon">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+            stroke="#080D18" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="11" width="18" height="11" rx="2"/>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+          </svg>
+        </div>
+        <div>
+          <div class="logo-text">Vault Midnight</div>
+          <div class="logo-sub"><span id="logCount">0</span> logs · <span id="subjectLabel">Physics</span></div>
+        </div>
+      </div>
+      <div class="header-right">
+        <button id="editBtn" class="edit-btn">Edit</button>
+        <button id="avatarBtn" class="avatar-btn" title="Sign out">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+            stroke="#64748b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+            <circle cx="12" cy="7" r="4"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+    <div class="pills-wrap">
+      <div class="pills no-sb">
+        <button class="pill active" data-subject="Physics">⚡ Physics</button>
+        <button class="pill" data-subject="Chemistry">🧪 Chemistry</button>
+        <button class="pill" data-subject="Maths">📐 Maths</button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <div id="loadingState" class="center-state">
+      <div class="big-spinner"></div>
+      <p>Loading your vault...</p>
+    </div>
+    <div id="emptyState" class="center-state" style="display:none">
+      <div class="empty-icon">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none"
+          stroke="#334155" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>
+          <polyline points="14 2 14 8 20 8"/>
+          <line x1="12" y1="18" x2="12" y2="12"/>
+          <line x1="9" y1="15" x2="15" y2="15"/>
+        </svg>
+      </div>
+      <p class="empty-title">No logs yet</p>
+      <p class="empty-sub">Switch to Edit mode and tap + to add your first entry</p>
+    </div>
+    <div id="feedContainer"></div>
+  </main>
+
+  <div id="fab">
+    <button id="fabBtn" class="btn-gold fab-btn">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none"
+        stroke="#080D18" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="12" y1="5" x2="12" y2="19"/>
+        <line x1="5" y1="12" x2="19" y2="12"/>
+      </svg>
+    </button>
+  </div>
+</div>
+
+<!-- ═══════════ MODAL ═══════════ -->
+<div id="modalOverlay">
+  <div id="modalSheet">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <div>
+        <h2>New Log Entry</h2>
+        <p>Capture a question + your key logic</p>
+      </div>
+      <button id="closeModalBtn" class="close-btn">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
+          stroke="#64748b" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"/>
+          <line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+    </div>
+    <form id="entryForm">
+      <div class="form-row-2">
+        <div class="form-group">
+          <label>Chapter</label>
+          <input id="inChapter" class="inp" type="text" placeholder="e.g. Kinematics" required/>
+        </div>
+        <div class="form-group">
+          <label>Topic / DPP</label>
+          <input id="inTopic" class="inp" type="text" placeholder="e.g. DPP-3" required/>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Question Number</label>
+        <input id="inQNum" class="inp" type="text" placeholder="e.g. Q.14" required/>
+      </div>
+      <div class="form-group">
+        <label>Short Logic / Trick</label>
+        <textarea id="inLogic" class="inp" rows="3"
+          placeholder="What's the key insight or trick?" required></textarea>
+      </div>
+      <div class="form-group">
+        <label>Question Photo
+          <span style="color:#475569;font-weight:400;text-transform:none;font-size:11px">(optional)</span>
+        </label>
+        <div class="dz" id="dropZone">
+          <div id="dzPlaceholder">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none"
+              stroke="#334155" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+              <circle cx="12" cy="13" r="4"/>
+            </svg>
+            <p>Tap to capture / upload photo</p>
+            <span>JPG, PNG, WEBP · optional</span>
+          </div>
+          <img id="imgPreview" src="" alt=""/>
+        </div>
+        <input id="imgInput" type="file" accept="image/*" style="display:none"/>
+      </div>
+      <button type="submit" id="submitBtn" class="btn-gold btn-full btn-row" style="margin-top:4px">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+          stroke="#080D18" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+          <polyline points="17 21 17 13 7 13 7 21"/>
+          <polyline points="7 3 7 8 15 8"/>
+        </svg>
+        Save to Vault
+      </button>
+    </form>
+  </div>
+</div>
+
+<!-- ═══════════ LIGHTBOX ═══════════ -->
+<div id="lb"><img id="lbImg" src="" alt="Question"/></div>
+
+<!-- ═══════════ TOAST ═══════════ -->
+<div id="toast"></div>
+
+<!-- ═══════════ ALL JAVASCRIPT ═══════════ -->
+<script>
+  // ── Firebase init ────────────────────────────────────────────
+  firebase.initializeApp({
+    apiKey:            "AIzaSyCS8TjvO6OWZT93BQCbEESCSxA1_F1GiY4",
+    authDomain:        "dpp-track.firebaseapp.com",
+    projectId:         "dpp-track",
+    storageBucket:     "dpp-track.firebasestorage.app",
+    messagingSenderId: "263840362934",
+    appId:             "1:263840362934:web:1d5980deea34cce0391117"
+  });
+
+  const auth    = firebase.auth();
+  const db      = firebase.firestore();
+  const storage = firebase.storage();
+
+  // ── State ────────────────────────────────────────────────────
+  let currentUser   = null;
+  let activeSubject = "Physics";
+  let isEditMode    = false;
+  let unsubFn       = null;
+  let selectedFile  = null;
+  let allEntries    = [];
+
+  // ── Helpers ──────────────────────────────────────────────────
+  function $(id) { return document.getElementById(id); }
+
+  function toast(msg, type) {
+    const t = $("toast");
+    t.textContent = msg;
+    t.className = "show " + (type || "ok");
+    clearTimeout(t._t);
+    t._t = setTimeout(() => { t.className = ""; }, 3000);
+  }
+
+  function resetSaveBtn() {
+    $("submitBtn").innerHTML = `
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+        stroke="#080D18" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+        <polyline points="17 21 17 13 7 13 7 21"/>
+        <polyline points="7 3 7 8 15 8"/>
+      </svg> Save to Vault`;
+    $("submitBtn").disabled = false;
+  }
+
+  // ── Auth ─────────────────────────────────────────────────────
+  $("signInBtn").addEventListener("click", async () => {
+    const btn = $("signInBtn");
+    btn.innerHTML = '<span class="spin"></span> Entering vault...';
+    btn.disabled = true;
+    try {
+      await auth.signInAnonymously();
+    } catch (e) {
+      console.error(e);
+      btn.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+        stroke="#080D18" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+        <circle cx="12" cy="7" r="4"/></svg> Enter as Guest`;
+      btn.disabled = false;
+      toast("Error: " + e.message, "err");
+    }
+  });
+
+  $("avatarBtn").addEventListener("click", async () => {
+    if (!confirm("Sign out of your vault?")) return;
+    if (unsubFn) { unsubFn(); unsubFn = null; }
+    await auth.signOut();
+    toast("Signed out.");
+  });
+
+  auth.onAuthStateChanged(user => {
+    if (user) {
+      currentUser = user;
+      $("authScreen").style.display = "none";
+      $("mainApp").style.display    = "flex";
+      loadFeed();
+    } else {
+      currentUser = null;
+      $("authScreen").style.display = "flex";
+      $("mainApp").style.display    = "none";
+      allEntries = [];
+    }
+  });
+
+  // ── Subject pills ────────────────────────────────────────────
+  document.querySelectorAll(".pill").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".pill").forEach(p => p.classList.remove("active"));
+      btn.classList.add("active");
+      activeSubject = btn.dataset.subject;
+      $("subjectLabel").textContent = activeSubject;
+      if (unsubFn) { unsubFn(); unsubFn = null; }
+      loadFeed();
+    });
+  });
+
+  // ── Edit mode ────────────────────────────────────────────────
+  $("editBtn").addEventListener("click", () => {
+    isEditMode = !isEditMode;
+    if (isEditMode) {
+      $("editBtn").textContent = "Done";
+      $("editBtn").classList.add("active");
+      $("fab").style.display = "block";
+      $("feedContainer").classList.add("edit-mode");
+    } else {
+      $("editBtn").textContent = "Edit";
+      $("editBtn").classList.remove("active");
+      $("fab").style.display = "none";
+      $("feedContainer").classList.remove("edit-mode");
+    }
+  });
+
+  // ── FAB ──────────────────────────────────────────────────────
+  $("fabBtn").addEventListener("click", open
