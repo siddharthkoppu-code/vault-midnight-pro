@@ -103,7 +103,6 @@ textarea.inp{resize:none}
 </head>
 <body>
 
-<!-- AUTH -->
 <div id="authScreen">
   <div class="acard">
     <div class="alogo">
@@ -126,7 +125,6 @@ textarea.inp{resize:none}
   </div>
 </div>
 
-<!-- MAIN APP -->
 <div id="mainApp">
   <header>
     <div class="hi">
@@ -183,7 +181,6 @@ textarea.inp{resize:none}
   </div>
 </div>
 
-<!-- MODAL -->
 <div id="mo">
   <div id="ms">
     <div class="mh2"></div>
@@ -228,14 +225,10 @@ textarea.inp{resize:none}
   </div>
 </div>
 
-<!-- LIGHTBOX -->
 <div id="lb"><img id="lbi" src="" alt=""/></div>
-
-<!-- TOAST -->
 <div id="toast"></div>
 
 <script>
-// ── Firebase ──────────────────────────────────────────────────
 firebase.initializeApp({
   apiKey:"AIzaSyCS8TjvO6OWZT93BQCbEESCSxA1_F1GiY4",
   authDomain:"dpp-track.firebaseapp.com",
@@ -244,11 +237,11 @@ firebase.initializeApp({
   messagingSenderId:"263840362934",
   appId:"1:263840362934:web:1d5980deea34cce0391117"
 });
+
 var auth    = firebase.auth();
 var db      = firebase.firestore();
 var storage = firebase.storage();
 
-// ── State ─────────────────────────────────────────────────────
 var user    = null;
 var subj    = "Physics";
 var editOn  = false;
@@ -256,7 +249,6 @@ var unsub   = null;
 var selFile = null;
 var entries = [];
 
-// ── Util ──────────────────────────────────────────────────────
 function g(id){ return document.getElementById(id); }
 
 function showToast(msg, type) {
@@ -267,7 +259,12 @@ function showToast(msg, type) {
   t._t = setTimeout(function(){ t.className = ""; }, 3000);
 }
 
-// ── Auth ──────────────────────────────────────────────────────
+function resetSaveBtn() {
+  g("sb").innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#080D18" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> Save to Vault';
+  g("sb").disabled = false;
+}
+
+// AUTH
 g("signInBtn").addEventListener("click", function() {
   var btn = g("signInBtn");
   btn.innerHTML = '<span class="spin"></span> Entering vault...';
@@ -291,17 +288,17 @@ auth.onAuthStateChanged(function(u) {
   if (u) {
     user = u;
     g("authScreen").style.display = "none";
-    g("mainApp").style.display    = "flex";
+    g("mainApp").style.display = "flex";
     loadFeed();
   } else {
     user = null;
     g("authScreen").style.display = "flex";
-    g("mainApp").style.display    = "none";
+    g("mainApp").style.display = "none";
     entries = [];
   }
 });
 
-// ── Pills ─────────────────────────────────────────────────────
+// PILLS
 document.querySelectorAll(".pill").forEach(function(btn) {
   btn.addEventListener("click", function() {
     document.querySelectorAll(".pill").forEach(function(p){ p.classList.remove("on"); });
@@ -313,7 +310,7 @@ document.querySelectorAll(".pill").forEach(function(btn) {
   });
 });
 
-// ── Edit mode ─────────────────────────────────────────────────
+// EDIT MODE
 g("editBtn").addEventListener("click", function() {
   editOn = !editOn;
   if (editOn) {
@@ -329,22 +326,24 @@ g("editBtn").addEventListener("click", function() {
   }
 });
 
-// ── FAB ───────────────────────────────────────────────────────
-g("fabBtn").addEventListener("click", openModal);
+// FAB
+g("fabBtn").addEventListener("click", function() { openModal(); });
 
-// ── Load feed ─────────────────────────────────────────────────
+// LOAD FEED
 function loadFeed() {
   g("ls").style.display = "flex";
   g("es").style.display = "none";
-  g("fc").innerHTML     = "";
+  g("fc").innerHTML = "";
 
   var q = db.collection("vault")
-    .where("uid","==", user.uid)
-    .where("subject","==", subj)
-    .orderBy("createdAt","desc");
+    .where("uid", "==", user.uid)
+    .where("subject", "==", subj)
+    .orderBy("createdAt", "desc");
 
   unsub = q.onSnapshot(function(snap) {
-    entries = snap.docs.map(function(d){ return Object.assign({id:d.id}, d.data()); });
+    entries = snap.docs.map(function(d) {
+      return Object.assign({ id: d.id }, d.data());
+    });
     g("lc").textContent = entries.length;
     g("ls").style.display = "none";
     renderFeed();
@@ -359,10 +358,10 @@ function loadFeed() {
   });
 }
 
-// ── Render feed ───────────────────────────────────────────────
+// RENDER FEED
 function renderFeed() {
-  var fc    = g("fc");
-  var es    = g("es");
+  var fc = g("fc");
+  var es = g("es");
   fc.innerHTML = "";
 
   if (!entries.length) {
@@ -371,11 +370,10 @@ function renderFeed() {
   }
   es.style.display = "none";
 
-  // Group by chapter → topic
   var chapters = {};
   entries.forEach(function(e) {
     var ch = e.chapter || "General";
-    var tp = e.topic   || "General";
+    var tp = e.topic || "General";
     if (!chapters[ch]) chapters[ch] = {};
     if (!chapters[ch][tp]) chapters[ch][tp] = [];
     chapters[ch][tp].push(e);
@@ -383,15 +381,15 @@ function renderFeed() {
 
   Object.keys(chapters).forEach(function(chapter) {
     var topics = chapters[chapter];
-    var total  = Object.values(topics).reduce(function(a,b){ return a + b.length; }, 0);
+    var total = Object.values(topics).reduce(function(a, b) { return a + b.length; }, 0);
 
     var cb = document.createElement("div");
     cb.className = "cb";
 
-    var ch = document.createElement("div");
-    ch.className = "ch";
-    ch.innerHTML = '<span class="cn">' + chapter + '</span><span class="cc">' + total + ' entr' + (total===1?'y':'ies') + '</span>';
-    cb.appendChild(ch);
+    var chEl = document.createElement("div");
+    chEl.className = "ch";
+    chEl.innerHTML = '<span class="cn">' + chapter + '</span><span class="cc">' + total + ' entr' + (total === 1 ? 'y' : 'ies') + '</span>';
+    cb.appendChild(chEl);
 
     Object.keys(topics).forEach(function(topic) {
       var tl = document.createElement("div");
@@ -405,7 +403,7 @@ function renderFeed() {
         card.innerHTML =
           '<div class="ct">' +
             '<span class="qb">' + (entry.qnum || "Q") + '</span>' +
-            '<button class="db" data-id="' + entry.id + '" title="Delete">' +
+            '<button class="db" title="Delete">' +
               '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#f87171" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">' +
                 '<polyline points="3 6 5 6 21 6"/>' +
                 '<path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>' +
@@ -414,16 +412,20 @@ function renderFeed() {
             '</button>' +
           '</div>' +
           '<p class="lt">' + (entry.logic || "") + '</p>' +
-          (entry.imageUrl ? '<img class="ci" src="' + entry.imageUrl + '" loading="lazy" alt="question"/>' : "");
+          (entry.imageUrl ? '<img class="ci" src="' + entry.imageUrl + '" loading="lazy" alt=""/>' : "");
 
-        card.querySelector(".db").addEventListener("click", function() {
-          deleteEntry(entry.id);
-        });
+        (function(eid) {
+          card.querySelector(".db").addEventListener("click", function() {
+            deleteEntry(eid);
+          });
+        })(entry.id);
 
         if (entry.imageUrl) {
-          card.querySelector(".ci").addEventListener("click", function() {
-            openLightbox(entry.imageUrl);
-          });
+          (function(url) {
+            card.querySelector(".ci").addEventListener("click", function() {
+              openLightbox(url);
+            });
+          })(entry.imageUrl);
         }
 
         cb.appendChild(card);
@@ -434,19 +436,18 @@ function renderFeed() {
   });
 }
 
-// ── Delete ────────────────────────────────────────────────────
+// DELETE
 function deleteEntry(id) {
   if (!confirm("Delete this entry?")) return;
   db.collection("vault").doc(id).delete()
-    .then(function(){ showToast("Entry deleted."); })
-    .catch(function(e){ showToast("Delete failed.", "err"); });
+    .then(function() { showToast("Entry deleted."); })
+    .catch(function() { showToast("Delete failed.", "err"); });
 }
 
-// ── Modal ─────────────────────────────────────────────────────
+// MODAL
 function openModal() {
   g("mo").classList.add("open");
   g("mo").style.display = "flex";
   g("ef").reset();
   selFile = null;
-  g("ip").style.display  = "none";
-  g("dzp").
+  g("
