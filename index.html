@@ -1,322 +1,277 @@
-// Inside <script type="module"> — expose ALL onclick functions to global scope
-window.signInWithGoogle = async () => { ... }
-window.signOutUser = async () => { ... }
-window.switchSubject = (s) => { ... }
-window.toggleEditMode = () => { ... }
-window.openModal = () => { ... }
-window.closeModal = () => { ... }
-window.handleImageSelect = (e) => { ... }
-window.submitEntry = async (e) => { ... }
-window.deleteEntry = async (id) => { ... }
-window.openLightbox = (url) => { ... }
-window.closeLightbox = () => { ... }
-window.handleOverlayClick = (e) => { ... }
-window.showToast = (msg, type) => { ... }
-Here's the complete corrected file:
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Vault Midnight Pro</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Firebase Compat (no modules needed) -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
+
   <style>
-    * { font-family: "Plus Jakarta Sans", sans-serif; box-sizing: border-box; }
-    body { background-color: #080D18; color: #e2e8f0; margin: 0; }
-    ::-webkit-scrollbar { width: 4px; height: 4px; }
-    ::-webkit-scrollbar-track { background: #0F172A; }
-    ::-webkit-scrollbar-thumb { background: #FBBF24; border-radius: 4px; }
-    .no-scrollbar::-webkit-scrollbar { display: none; }
-    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-    .pill-active { background: #FBBF24 !important; color: #080D18 !important; font-weight: 700 !important; }
-    .chapter-block { border-left: 3px solid #FBBF24; }
-    .drop-zone { border: 2px dashed #334155; transition: border-color 0.2s; }
-    .drop-zone:hover { border-color: #FBBF24; }
-    .drop-zone.has-image { border-color: #FBBF24; border-style: solid; }
-    @keyframes slideUp {
-      from { transform: translateY(100%); opacity: 0; }
-      to   { transform: translateY(0);   opacity: 1; }
-    }
-    .modal-sheet { animation: slideUp 0.3s ease-out; }
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(10px); }
-      to   { opacity: 1; transform: translateY(0); }
-    }
-    .card-fade { animation: fadeIn 0.3s ease-out; }
-    .btn-gold {
-      background: #FBBF24; color: #080D18; font-weight: 700;
-      transition: box-shadow 0.2s, transform 0.1s;
-    }
-    .btn-gold:hover { box-shadow: 0 0 20px rgba(251,191,36,0.4); transform: translateY(-1px); }
-    .btn-gold:active { transform: scale(0.97); }
-    .spinner {
-      width: 20px; height: 20px;
-      border: 2px solid rgba(251,191,36,0.2);
-      border-top-color: #FBBF24;
-      border-radius: 50%;
-      animation: spin 0.7s linear infinite;
-      display: inline-block; vertical-align: middle;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    #toast {
-      position: fixed; bottom: 24px; left: 50%;
-      transform: translateX(-50%) translateY(80px);
-      background: #1E293B; color: #e2e8f0;
-      padding: 10px 22px; border-radius: 999px;
-      font-size: 13px; font-weight: 600;
-      border: 1px solid #334155;
-      transition: transform 0.3s ease, opacity 0.3s ease;
-      opacity: 0; z-index: 9999; white-space: nowrap;
-      pointer-events: none;
-    }
-    #toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
-    #toast.success { border-color: #FBBF24; color: #FBBF24; }
-    #toast.error   { border-color: #f87171; color: #f87171; }
-    #lightbox {
-      display: none; position: fixed; inset: 0;
-      background: rgba(8,13,24,0.95); z-index: 10000;
-      align-items: center; justify-content: center; cursor: zoom-out;
-    }
-    #lightbox.open { display: flex; }
-    #lightbox img { max-width: 94vw; max-height: 90vh; border-radius: 12px; object-fit: contain; }
-    .input-field {
-      width: 100%; background: #1E293B; border: 1px solid #334155;
-      border-radius: 12px; padding: 10px 14px; font-size: 14px;
-      color: #fff; outline: none; transition: border-color 0.2s;
-      font-family: "Plus Jakarta Sans", sans-serif;
-    }
-    .input-field::placeholder { color: #475569; }
-    .input-field:focus { border-color: #FBBF24; }
+    *{font-family:"Plus Jakarta Sans",sans-serif;box-sizing:border-box;margin:0;padding:0}
+    body{background:#080D18;color:#e2e8f0;min-height:100vh}
+    ::-webkit-scrollbar{width:4px;height:4px}
+    ::-webkit-scrollbar-track{background:#0F172A}
+    ::-webkit-scrollbar-thumb{background:#FBBF24;border-radius:4px}
+    .no-sb::-webkit-scrollbar{display:none}
+    .no-sb{-ms-overflow-style:none;scrollbar-width:none}
+
+    /* Buttons */
+    .btn-gold{background:#FBBF24;color:#080D18;font-weight:700;border:none;cursor:pointer;
+      font-family:inherit;transition:box-shadow .2s,transform .1s}
+    .btn-gold:hover{box-shadow:0 0 20px rgba(251,191,36,.4);transform:translateY(-1px)}
+    .btn-gold:active{transform:scale(.97)}
+
+    /* Pills */
+    .pill{flex-shrink:0;padding:6px 18px;border-radius:999px;font-size:13px;font-weight:600;
+      border:none;cursor:pointer;background:#1E293B;color:#94a3b8;transition:all .2s;font-family:inherit}
+    .pill.active{background:#FBBF24;color:#080D18;font-weight:700}
+
+    /* Input */
+    .inp{width:100%;background:#1E293B;border:1px solid #334155;border-radius:12px;
+      padding:10px 14px;font-size:14px;color:#fff;outline:none;
+      transition:border-color .2s;font-family:inherit}
+    .inp::placeholder{color:#475569}
+    .inp:focus{border-color:#FBBF24}
+
+    /* Spinner */
+    .spin{display:inline-block;width:18px;height:18px;border-radius:50%;
+      border:2px solid rgba(8,13,24,.2);border-top-color:#080D18;
+      animation:rot .7s linear infinite;vertical-align:middle}
+    @keyframes rot{to{transform:rotate(360deg)}}
+
+    /* Toast */
+    #toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);
+      background:#1E293B;color:#e2e8f0;padding:10px 22px;border-radius:999px;
+      font-size:13px;font-weight:600;border:1px solid #334155;
+      transition:transform .3s,opacity .3s;opacity:0;z-index:9999;
+      white-space:nowrap;pointer-events:none}
+    #toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+    #toast.ok{border-color:#FBBF24;color:#FBBF24}
+    #toast.err{border-color:#f87171;color:#f87171}
+
+    /* Lightbox */
+    #lb{display:none;position:fixed;inset:0;background:rgba(8,13,24,.95);
+      z-index:10000;align-items:center;justify-content:center;cursor:zoom-out}
+    #lb.open{display:flex}
+    #lb img{max-width:94vw;max-height:90vh;border-radius:12px;object-fit:contain}
+
+    /* Modal */
+    #modalOverlay{display:none;position:fixed;inset:0;z-index:60;
+      background:rgba(8,13,24,.8);backdrop-filter:blur(4px);
+      align-items:flex-end;justify-content:center}
+    #modalOverlay.open{display:flex}
+    @keyframes slideUp{from{transform:translateY(100%);opacity:0}to{transform:translateY(0);opacity:1}}
+    #modalSheet{animation:slideUp .3s ease-out}
+
+    /* Drop zone */
+    .dz{border:2px dashed #334155;border-radius:14px;overflow:hidden;
+      cursor:pointer;min-height:100px;transition:border-color .2s}
+    .dz:hover,.dz.has-img{border-color:#FBBF24}
+
+    /* Cards */
+    @keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+    .card{animation:fadeIn .3s ease-out}
+    .chapter-block{border-left:3px solid #FBBF24;padding-left:14px;margin-bottom:24px}
+
+    /* Header */
+    header{position:sticky;top:0;z-index:50;
+      backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+      background:rgba(8,13,24,.85);border-bottom:1px solid rgba(30,41,59,.8)}
   </style>
 </head>
 <body>
 
-<!-- ══════════════════ AUTH SCREEN ══════════════════ -->
-<div id="authScreen" style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;">
-  <div style="width:100%;max-width:360px;text-align:center;">
-    <div style="margin-bottom:32px;">
-      <div style="display:inline-flex;align-items:center;justify-content:center;
-        width:80px;height:80px;border-radius:20px;background:#0F172A;
-        border:1px solid #1E293B;margin-bottom:20px;">
-        <svg xmlns="http://www.w3.org/2000/svg" width="38" height="38" viewBox="0 0 24 24"
-          fill="none" stroke="#FBBF24" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-          <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-        </svg>
-      </div>
-      <h1 style="font-size:28px;font-weight:800;color:#fff;letter-spacing:-0.5px;margin:0;">Vault Midnight Pro</h1>
-      <p style="color:#64748b;margin-top:8px;font-size:14px;font-weight:500;">Your personal study intelligence vault</p>
+<!-- ═══════════ AUTH ═══════════ -->
+<div id="authScreen" style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px">
+  <div style="width:100%;max-width:360px;text-align:center">
+    <div style="display:inline-flex;align-items:center;justify-content:center;
+      width:80px;height:80px;border-radius:20px;background:#0F172A;
+      border:1px solid #1E293B;margin-bottom:20px">
+      <svg width="38" height="38" viewBox="0 0 24 24" fill="none"
+        stroke="#FBBF24" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+      </svg>
     </div>
-    <div style="background:#0F172A;border:1px solid #1E293B;border-radius:20px;padding:32px;">
-      <p style="color:#94a3b8;font-size:14px;line-height:1.7;margin:0 0 24px;">
-        Sign in with Google to access your private study logs. Only your account can view and edit your vault.
+    <h1 style="font-size:28px;font-weight:800;color:#fff;letter-spacing:-.5px">Vault Midnight Pro</h1>
+    <p style="color:#64748b;margin-top:8px;font-size:14px">Your personal study intelligence vault</p>
+
+    <div style="background:#0F172A;border:1px solid #1E293B;border-radius:20px;padding:32px;margin-top:28px">
+      <p style="color:#94a3b8;font-size:14px;line-height:1.7;margin-bottom:24px">
+        Sign in with Google to access your private study logs.
       </p>
-      <button id="googleSignInBtn" onclick="window.signInWithGoogle()"
-        class="btn-gold"
+      <button id="signInBtn" class="btn-gold"
         style="width:100%;display:flex;align-items:center;justify-content:center;
-        gap:10px;padding:14px;border-radius:14px;border:none;cursor:pointer;font-size:14px;font-family:inherit;">
+        gap:10px;padding:14px;border-radius:14px;font-size:14px">
         <svg width="18" height="18" viewBox="0 0 24 24">
           <path fill="#080D18" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
           <path fill="#080D18" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-          <path fill="#080D18" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+          <path fill="#080D18" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/>
           <path fill="#080D18" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
         </svg>
         Continue with Google
       </button>
     </div>
-    <p style="color:#334155;font-size:12px;margin-top:20px;">Vault Midnight Pro · Built for serious students</p>
+    <p style="color:#334155;font-size:12px;margin-top:20px">Vault Midnight Pro · Built for serious students</p>
   </div>
 </div>
 
-<!-- ══════════════════ MAIN APP ══════════════════════ -->
-<div id="mainApp" style="display:none;min-height:100vh;flex-direction:column;">
+<!-- ═══════════ MAIN APP ═══════════ -->
+<div id="mainApp" style="display:none;flex-direction:column;min-height:100vh">
 
-  <!-- Header -->
-  <header style="position:sticky;top:0;z-index:50;
-    backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
-    background:rgba(8,13,24,0.85);border-bottom:1px solid rgba(30,41,59,0.8);">
+  <header>
     <div style="max-width:720px;margin:0 auto;padding:12px 16px;
-      display:flex;align-items:center;justify-content:space-between;">
-      <div style="display:flex;align-items:center;gap:12px;">
+      display:flex;align-items:center;justify-content:space-between">
+      <div style="display:flex;align-items:center;gap:12px">
         <div style="width:34px;height:34px;border-radius:10px;background:#FBBF24;
-          display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
-            fill="none" stroke="#080D18" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+          display:flex;align-items:center;justify-content:center">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+            stroke="#080D18" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
           </svg>
         </div>
         <div>
-          <div style="color:#fff;font-weight:800;font-size:15px;line-height:1.1;">Vault Midnight</div>
-          <div style="color:#FBBF24;font-size:11px;font-weight:600;margin-top:2px;">
-            <span id="logCount">0</span> logs · <span id="activeSubjectLabel">Physics</span>
+          <div style="color:#fff;font-weight:800;font-size:15px">Vault Midnight</div>
+          <div style="color:#FBBF24;font-size:11px;font-weight:600;margin-top:2px">
+            <span id="logCount">0</span> logs · <span id="subjectLabel">Physics</span>
           </div>
         </div>
       </div>
-      <div style="display:flex;align-items:center;gap:8px;">
-        <button id="editToggleBtn" onclick="window.toggleEditMode()"
+      <div style="display:flex;align-items:center;gap:8px">
+        <button id="editBtn"
           style="font-size:12px;font-weight:700;padding:6px 14px;border-radius:8px;
           border:1px solid #334155;color:#94a3b8;background:transparent;cursor:pointer;
-          transition:all 0.2s;font-family:inherit;">Edit</button>
-        <button onclick="window.signOutUser()" title="Sign out"
+          font-family:inherit;transition:all .2s">Edit</button>
+        <button id="avatarBtn"
           style="width:34px;height:34px;border-radius:50%;overflow:hidden;
           border:2px solid #334155;background:#1E293B;cursor:pointer;padding:0;
-          display:flex;align-items:center;justify-content:center;">
-          <img id="userAvatar" src="" alt="" style="width:100%;height:100%;object-fit:cover;display:none;" />
-          <svg id="userAvatarFallback" xmlns="http://www.w3.org/2000/svg" width="16" height="16"
-            viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2"
-            stroke-linecap="round" stroke-linejoin="round">
-            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-            <circle cx="12" cy="7" r="4"/>
+          display:flex;align-items:center;justify-content:center">
+          <img id="userAvatar" src="" alt="" style="width:100%;height:100%;object-fit:cover;display:none"/>
+          <svg id="avatarIcon" width="16" height="16" viewBox="0 0 24 24" fill="none"
+            stroke="#64748b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
           </svg>
         </button>
       </div>
     </div>
-    <!-- Subject Pills -->
-    <div style="max-width:720px;margin:0 auto;padding:0 16px 12px;">
-      <div class="no-scrollbar" style="display:flex;gap:8px;overflow-x:auto;">
-        <button onclick="window.switchSubject('Physics')" id="pill-Physics" class="pill-active"
-          style="flex-shrink:0;padding:6px 18px;border-radius:999px;font-size:13px;font-weight:600;
-          border:none;cursor:pointer;background:#1E293B;color:#94a3b8;transition:all 0.2s;font-family:inherit;">
-          ⚡ Physics</button>
-        <button onclick="window.switchSubject('Chemistry')" id="pill-Chemistry"
-          style="flex-shrink:0;padding:6px 18px;border-radius:999px;font-size:13px;font-weight:600;
-          border:none;cursor:pointer;background:#1E293B;color:#94a3b8;transition:all 0.2s;font-family:inherit;">
-          🧪 Chemistry</button>
-        <button onclick="window.switchSubject('Maths')" id="pill-Maths"
-          style="flex-shrink:0;padding:6px 18px;border-radius:999px;font-size:13px;font-weight:600;
-          border:none;cursor:pointer;background:#1E293B;color:#94a3b8;transition:all 0.2s;font-family:inherit;">
-          📐 Maths</button>
+    <div style="max-width:720px;margin:0 auto;padding:0 16px 12px">
+      <div class="no-sb" style="display:flex;gap:8px;overflow-x:auto">
+        <button class="pill active" id="pill-Physics"  data-subject="Physics">⚡ Physics</button>
+        <button class="pill"        id="pill-Chemistry" data-subject="Chemistry">🧪 Chemistry</button>
+        <button class="pill"        id="pill-Maths"     data-subject="Maths">📐 Maths</button>
       </div>
     </div>
   </header>
 
-  <!-- Feed -->
-  <main style="flex:1;max-width:720px;margin:0 auto;width:100%;padding:20px 16px 100px;">
-    <div id="loadingState" style="display:flex;flex-direction:column;align-items:center;
-      justify-content:center;padding:80px 0;gap:12px;">
-      <div class="spinner" style="width:28px;height:28px;border-width:3px;"></div>
-      <p style="color:#475569;font-size:14px;margin:0;">Loading your vault...</p>
+  <main style="flex:1;max-width:720px;margin:0 auto;width:100%;padding:20px 16px 100px">
+    <div id="loadingState" style="display:flex;flex-direction:column;align-items:center;padding:80px 0;gap:12px">
+      <div style="width:28px;height:28px;border-radius:50%;border:3px solid rgba(251,191,36,.2);
+        border-top-color:#FBBF24;animation:rot .7s linear infinite"></div>
+      <p style="color:#475569;font-size:14px">Loading your vault...</p>
     </div>
-    <div id="emptyState" style="display:none;flex-direction:column;align-items:center;
-      justify-content:center;padding:80px 0;text-align:center;">
+    <div id="emptyState" style="display:none;flex-direction:column;align-items:center;padding:80px 0;text-align:center">
       <div style="width:64px;height:64px;border-radius:18px;background:#0F172A;
-        border:1px solid #1E293B;display:flex;align-items:center;justify-content:center;margin-bottom:16px;">
-        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24"
-          fill="none" stroke="#334155" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        border:1px solid #1E293B;display:flex;align-items:center;justify-content:center;margin-bottom:16px">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none"
+          stroke="#334155" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
           <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>
           <polyline points="14 2 14 8 20 8"/>
-          <line x1="12" y1="18" x2="12" y2="12"/>
-          <line x1="9" y1="15" x2="15" y2="15"/>
+          <line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/>
         </svg>
       </div>
-      <p style="color:#64748b;font-weight:600;font-size:15px;margin:0;">No logs yet</p>
-      <p style="color:#334155;font-size:13px;margin:6px 0 0;">Switch to Edit mode and tap + to add your first entry</p>
+      <p style="color:#64748b;font-weight:600;font-size:15px">No logs yet</p>
+      <p style="color:#334155;font-size:13px;margin-top:6px">Switch to Edit mode and tap + to add your first entry</p>
     </div>
-    <div id="feedContainer" style="display:none;"></div>
+    <div id="feedContainer"></div>
   </main>
 
-  <!-- FAB -->
-  <div id="fabContainer" style="display:none;position:fixed;bottom:24px;right:20px;z-index:40;">
-    <button onclick="window.openModal()" class="btn-gold"
-      style="width:56px;height:56px;border-radius:50%;border:none;cursor:pointer;
+  <div id="fab" style="display:none;position:fixed;bottom:24px;right:20px;z-index:40">
+    <button id="fabBtn" class="btn-gold"
+      style="width:56px;height:56px;border-radius:50%;
       display:flex;align-items:center;justify-content:center;
-      box-shadow:0 8px 32px rgba(251,191,36,0.4);">
-      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
-        fill="none" stroke="#080D18" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-        <line x1="12" y1="5" x2="12" y2="19"/>
-        <line x1="5" y1="12" x2="19" y2="12"/>
+      box-shadow:0 8px 32px rgba(251,191,36,.4)">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none"
+        stroke="#080D18" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
       </svg>
     </button>
   </div>
 </div>
 
-<!-- ══════════════════ MODAL ════════════════════════ -->
-<div id="modalOverlay" onclick="window.handleOverlayClick(event)"
-  style="display:none;position:fixed;inset:0;z-index:60;
-  background:rgba(8,13,24,0.8);backdrop-filter:blur(4px);
-  align-items:flex-end;justify-content:center;">
-  <div class="modal-sheet"
-    style="width:100%;max-width:560px;background:#0F172A;
-    border:1px solid #1E293B;border-radius:24px 24px 0 0;
-    padding:24px;max-height:92vh;overflow-y:auto;">
-    <div style="width:40px;height:4px;background:#1E293B;border-radius:2px;margin:0 auto 20px;"></div>
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+<!-- ═══════════ MODAL ═══════════ -->
+<div id="modalOverlay">
+  <div id="modalSheet"
+    style="width:100%;max-width:560px;background:#0F172A;border:1px solid #1E293B;
+    border-radius:24px 24px 0 0;padding:24px;max-height:92vh;overflow-y:auto">
+    <div style="width:40px;height:4px;background:#1E293B;border-radius:2px;margin:0 auto 20px"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
       <div>
-        <h2 style="color:#fff;font-weight:800;font-size:18px;margin:0;">New Log Entry</h2>
-        <p style="color:#475569;font-size:12px;margin:4px 0 0;">Capture a question + your key logic</p>
+        <h2 style="color:#fff;font-weight:800;font-size:18px">New Log Entry</h2>
+        <p style="color:#475569;font-size:12px;margin-top:4px">Capture a question + your key logic</p>
       </div>
-      <button onclick="window.closeModal()"
+      <button id="closeModalBtn"
         style="width:32px;height:32px;border-radius:50%;background:#1E293B;border:none;
-        cursor:pointer;display:flex;align-items:center;justify-content:center;">
-        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24"
-          fill="none" stroke="#64748b" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-          <line x1="18" y1="6" x2="6" y2="18"/>
-          <line x1="6" y1="6" x2="18" y2="18"/>
+        cursor:pointer;display:flex;align-items:center;justify-content:center">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
+          stroke="#64748b" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
         </svg>
       </button>
     </div>
-    <form onsubmit="window.submitEntry(event)" style="display:flex;flex-direction:column;gap:14px;">
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+    <form id="entryForm" style="display:flex;flex-direction:column;gap:14px">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
         <div>
           <label style="color:#64748b;font-size:11px;font-weight:700;text-transform:uppercase;
-            letter-spacing:0.06em;display:block;margin-bottom:6px;">Chapter</label>
-          <input id="inputChapter" class="input-field" type="text" placeholder="e.g. Kinematics" required />
+            letter-spacing:.06em;display:block;margin-bottom:6px">Chapter</label>
+          <input id="inChapter" class="inp" type="text" placeholder="e.g. Kinematics" required/>
         </div>
         <div>
           <label style="color:#64748b;font-size:11px;font-weight:700;text-transform:uppercase;
-            letter-spacing:0.06em;display:block;margin-bottom:6px;">Topic / DPP</label>
-          <input id="inputTopic" class="input-field" type="text" placeholder="e.g. DPP-3" required />
+            letter-spacing:.06em;display:block;margin-bottom:6px">Topic / DPP</label>
+          <input id="inTopic" class="inp" type="text" placeholder="e.g. DPP-3" required/>
         </div>
       </div>
       <div>
         <label style="color:#64748b;font-size:11px;font-weight:700;text-transform:uppercase;
-          letter-spacing:0.06em;display:block;margin-bottom:6px;">Question Number</label>
-        <input id="inputQNum" class="input-field" type="text" placeholder="e.g. Q.14" required />
+          letter-spacing:.06em;display:block;margin-bottom:6px">Question Number</label>
+        <input id="inQNum" class="inp" type="text" placeholder="e.g. Q.14" required/>
       </div>
       <div>
         <label style="color:#64748b;font-size:11px;font-weight:700;text-transform:uppercase;
-          letter-spacing:0.06em;display:block;margin-bottom:6px;">Short Logic / Trick</label>
-        <textarea id="inputLogic" class="input-field" rows="3"
-          placeholder="What's the key insight or trick for this question?" required
-          style="resize:none;"></textarea>
+          letter-spacing:.06em;display:block;margin-bottom:6px">Short Logic / Trick</label>
+        <textarea id="inLogic" class="inp" rows="3"
+          placeholder="What's the key insight or trick?" required style="resize:none"></textarea>
       </div>
       <div>
         <label style="color:#64748b;font-size:11px;font-weight:700;text-transform:uppercase;
-          letter-spacing:0.06em;display:block;margin-bottom:6px;">Question Photo</label>
-        <div id="dropZone" class="drop-zone"
-          onclick="document.getElementById('imageInput').click()"
-          style="border-radius:14px;overflow:hidden;cursor:pointer;min-height:100px;">
-          <div id="dropZonePlaceholder"
-            style="display:flex;flex-direction:column;align-items:center;
-            justify-content:center;padding:28px;gap:8px;">
-            <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24"
-              fill="none" stroke="#334155" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          letter-spacing:.06em;display:block;margin-bottom:6px">Question Photo</label>
+        <div class="dz" id="dropZone">
+          <div id="dzPlaceholder" style="display:flex;flex-direction:column;align-items:center;
+            justify-content:center;padding:28px;gap:8px">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none"
+              stroke="#334155" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
               <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
               <circle cx="12" cy="13" r="4"/>
             </svg>
-            <p style="color:#475569;font-size:13px;font-weight:600;margin:0;">Tap to capture / upload photo</p>
-            <p style="color:#334155;font-size:11px;margin:0;">JPG, PNG, WEBP supported</p>
+            <p style="color:#475569;font-size:13px;font-weight:600;margin:0">Tap to capture / upload photo</p>
+            <p style="color:#334155;font-size:11px;margin:0">JPG, PNG, WEBP · optional</p>
           </div>
-          <img id="imagePreview" src="" alt="preview"
-            style="display:none;width:100%;object-fit:contain;max-height:220px;" />
+          <img id="imgPreview" src="" alt="" style="display:none;width:100%;object-fit:contain;max-height:220px"/>
         </div>
-        <input id="imageInput" type="file" accept="image/*" capture="environment"
-          style="display:none;" onchange="window.handleImageSelect(event)" />
+        <input id="imgInput" type="file" accept="image/*" style="display:none"/>
       </div>
       <button type="submit" id="submitBtn" class="btn-gold"
-        style="width:100%;padding:14px;border-radius:14px;border:none;cursor:pointer;
-        font-size:14px;font-family:inherit;display:flex;align-items:center;
-        justify-content:center;gap:8px;margin-top:4px;">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
-          fill="none" stroke="#080D18" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        style="width:100%;padding:14px;border-radius:14px;font-size:14px;font-family:inherit;
+        display:flex;align-items:center;justify-content:center;gap:8px;margin-top:4px">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+          stroke="#080D18" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
           <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
-          <polyline points="17 21 17 13 7 13 7 21"/>
-          <polyline points="7 3 7 8 15 8"/>
+          <polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/>
         </svg>
         Save to Vault
       </button>
@@ -324,64 +279,191 @@ Here's the complete corrected file:
   </div>
 </div>
 
-<!-- ══════════════════ LIGHTBOX ═════════════════════ -->
-<div id="lightbox" onclick="window.closeLightbox()">
-  <img id="lightboxImg" src="" alt="Question" />
-</div>
+<!-- ═══════════ LIGHTBOX ═══════════ -->
+<div id="lb"><img id="lbImg" src="" alt="Question"/></div>
 
-<!-- ══════════════════ TOAST ════════════════════════ -->
+<!-- ═══════════ TOAST ═══════════ -->
 <div id="toast"></div>
 
-<!-- ══════════════════ FIREBASE MODULE ══════════════ -->
-<script type="module">
-  import { initializeApp }
-    from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-  import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged }
-    from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-  import { getFirestore, collection, addDoc, deleteDoc, doc,
-           query, where, orderBy, onSnapshot, serverTimestamp }
-    from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-  import { getStorage, ref, uploadBytes, getDownloadURL }
-    from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
-
-  const firebaseConfig = {
+<!-- ═══════════ APP LOGIC ═══════════ -->
+<script>
+  // ── Firebase init ──────────────────────────────────
+  firebase.initializeApp({
     apiKey:            "AIzaSyCS8TjvO6OWZT93BQCbEESCSxA1_F1GiY4",
     authDomain:        "dpp-track.firebaseapp.com",
     projectId:         "dpp-track",
     storageBucket:     "dpp-track.firebasestorage.app",
     messagingSenderId: "263840362934",
     appId:             "1:263840362934:web:1d5980deea34cce0391117"
-  };
+  });
 
-  const app      = initializeApp(firebaseConfig);
-  const auth     = getAuth(app);
-  const db       = getFirestore(app);
-  const storage  = getStorage(app);
-  const provider = new GoogleAuthProvider();
+  const auth     = firebase.auth();
+  const db       = firebase.firestore();
+  const storage  = firebase.storage();
+  const provider = new firebase.auth.GoogleAuthProvider();
 
   // ── State ──────────────────────────────────────────
   let currentUser   = null;
   let activeSubject = "Physics";
   let isEditMode    = false;
-  let unsubscribeFn = null;
+  let unsubFn       = null;
   let selectedFile  = null;
-  let allEntries    = [];
 
   // ── Toast ──────────────────────────────────────────
-  window.showToast = (msg, type = "success") => {
+  function toast(msg, type) {
     const t = document.getElementById("toast");
     t.textContent = msg;
-    t.className = `show ${type}`;
-    setTimeout(() => { t.className = ""; }, 3000);
-  };
+    t.className = "show " + (type || "ok");
+    clearTimeout(t._t);
+    t._t = setTimeout(() => t.className = "", 3000);
+  }
 
   // ── Auth ───────────────────────────────────────────
-  window.signInWithGoogle = async () => {
-    const btn = document.getElementById("googleSignInBtn");
-    btn.innerHTML = `<span class="spinner" style="border-top-color:#080D18;border-color:rgba(8,13,24,0.15);margin-right:8px;"></span> Signing in...`;
+  document.getElementById("signInBtn").addEventListener("click", async () => {
+    const btn = document.getElementById("signInBtn");
+    btn.innerHTML = '<span class="spin"></span> Signing in...';
     btn.disabled = true;
     try {
-      await signInWithPopup(auth, provider);
-    } catch (e) {
+      await auth.signInWithPopup(provider);
+    } catch(e) {
       console.error(e);
-      btn.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24"><path fill="#080D18" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#080D18" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#080D18" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#080D18" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15
+      btn.innerHTML = 'Continue with Google';
+      btn.disabled = false;
+      toast("Sign-in failed: " + e.message, "err");
+    }
+  });
+
+  document.getElementById("avatarBtn").addEventListener("click", async () => {
+    if (unsubFn) { unsubFn(); unsubFn = null; }
+    await auth.signOut();
+    toast("Signed out.");
+  });
+
+  auth.onAuthStateChanged(user => {
+    if (user) {
+      currentUser = user;
+      document.getElementById("authScreen").style.display = "none";
+      document.getElementById("mainApp").style.display    = "flex";
+      const av = document.getElementById("userAvatar");
+      if (user.photoURL) {
+        av.src = user.photoURL;
+        av.style.display = "block";
+        document.getElementById("avatarIcon").style.display = "none";
+      }
+      loadFeed();
+    } else {
+      currentUser = null;
+      document.getElementById("authScreen").style.display = "flex";
+      document.getElementById("mainApp").style.display    = "none";
+    }
+  });
+
+  // ── Subject switcher ───────────────────────────────
+  document.querySelectorAll(".pill").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".pill").forEach(p => p.classList.remove("active"));
+      btn.classList.add("active");
+      activeSubject = btn.dataset.subject;
+      document.getElementById("subjectLabel").textContent = activeSubject;
+      if (unsubFn) { unsubFn(); unsubFn = null; }
+      loadFeed();
+    });
+  });
+
+  // ── Edit mode ──────────────────────────────────────
+  document.getElementById("editBtn").addEventListener("click", () => {
+    isEditMode = !isEditMode;
+    const btn = document.getElementById("editBtn");
+    const fab = document.getElementById("fab");
+    if (isEditMode) {
+      btn.textContent = "Done";
+      btn.style.borderColor = "#FBBF24";
+      btn.style.color = "#FBBF24";
+      fab.style.display = "block";
+    } else {
+      btn.textContent = "Edit";
+      btn.style.borderColor = "#334155";
+      btn.style.color = "#94a3b8";
+      fab.style.display = "none";
+    }
+    renderFeed();
+  });
+
+  // ── FAB ────────────────────────────────────────────
+  document.getElementById("fabBtn").addEventListener("click", openModal);
+
+  // ── Load feed ──────────────────────────────────────
+  function loadFeed() {
+    document.getElementById("loadingState").style.display = "flex";
+    document.getElementById("emptyState").style.display   = "none";
+    document.getElementById("feedContainer").innerHTML    = "";
+
+    const q = db.collection("vault")
+      .where("uid", "==", currentUser.uid)
+      .where("subject", "==", activeSubject)
+      .orderBy("createdAt", "desc");
+
+    unsubFn = q.onSnapshot(snap => {
+      window._entries = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      document.getElementById("logCount").textContent = window._entries.length;
+      document.getElementById("loadingState").style.display = "none";
+      renderFeed();
+    }, err => {
+      document.getElementById("loadingState").style.display = "none";
+      toast("Failed to load: " + err.message, "err");
+    });
+  }
+
+  // ── Render feed ────────────────────────────────────
+  function renderFeed() {
+    const entries = window._entries || [];
+    const feed    = document.getElementById("feedContainer");
+    const empty   = document.getElementById("emptyState");
+    feed.innerHTML = "";
+
+    if (!entries.length) {
+      empty.style.display = "flex";
+      return;
+    }
+    empty.style.display = "none";
+
+    // Group by chapter
+    const chapters = {};
+    entries.forEach(e => {
+      const ch = e.chapter || "Uncategorised";
+      if (!chapters[ch]) chapters[ch] = {};
+      const tp = e.topic || "General";
+      if (!chapters[ch][tp]) chapters[ch][tp] = [];
+      chapters[ch][tp].push(e);
+    });
+
+    Object.entries(chapters).forEach(([chapter, topics]) => {
+      const chBlock = document.createElement("div");
+      chBlock.className = "chapter-block card";
+      chBlock.style.cssText = "margin-bottom:28px";
+
+      // Chapter heading
+      const chHead = document.createElement("div");
+      chHead.style.cssText = "display:flex;align-items:center;gap:8px;margin-bottom:14px";
+      chHead.innerHTML = `
+        <span style="color:#FBBF24;font-weight:800;font-size:16px">${chapter}</span>
+        <span style="background:#1E293B;color:#64748b;font-size:11px;font-weight:700;
+          padding:2px 8px;border-radius:999px">${Object.values(topics).flat().length} entries</span>`;
+      chBlock.appendChild(chHead);
+
+      Object.entries(topics).forEach(([topic, items]) => {
+        // Topic label
+        const tpLabel = document.createElement("div");
+        tpLabel.style.cssText = "color:#64748b;font-size:11px;font-weight:700;text-transform:uppercase;" +
+          "letter-spacing:.06em;margin-bottom:10px;margin-top:4px";
+        tpLabel.textContent = topic;
+        chBlock.appendChild(tpLabel);
+
+        items.forEach(entry => {
+          const card = document.createElement("div");
+          card.style.cssText = "background:#0F172A;border:1px solid #1E293B;border-radius:16px;" +
+            "padding:16px;margin-bottom:10px;position:relative";
+
+          // Q badge + delete
+          const topRow = document.createElement("div");
+          topRow.style.cssText = "display:
